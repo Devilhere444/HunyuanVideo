@@ -57,6 +57,8 @@ ENV MAX_WORKERS=2
 EXPOSE 10000
 
 # Health check
+# Note: Models are loaded on-demand, so initial health check will show "initializing" status
+# The service is healthy if it responds, even before models are loaded
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5m --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:10000/health', timeout=5)" || exit 1
 
