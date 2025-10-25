@@ -265,8 +265,14 @@ async def webhook_download(job_id: str):
     Download generated video via N8N webhook
     
     Use this in N8N to download the final video file.
+    Returns the video URL for the client to download directly.
     """
     try:
+        # Validate job_id format to prevent injection attacks
+        import re
+        if not re.match(r'^[a-f0-9\-]{36}$', job_id):
+            raise HTTPException(status_code=400, detail="Invalid job ID format")
+        
         # First check if video is ready
         status_response = requests.get(f"{N8N_API_BASE_URL}/api/status/{job_id}", timeout=10)
         status_response.raise_for_status()
@@ -281,24 +287,31 @@ async def webhook_download(job_id: str):
         if not status_data.get("video_url"):
             raise HTTPException(status_code=404, detail="Video URL not available")
         
-        # Download video from main API
-        video_url = f"{N8N_API_BASE_URL}{status_data['video_url']}"
-        video_response = requests.get(video_url, stream=True, timeout=30)
-        video_response.raise_for_status()
+        # Validate that the video_url is from our API (prevent open redirect)
+        video_path = status_data['video_url']
+        if not video_path.startswith('/api/videos/'):
+            raise HTTPException(status_code=400, detail="Invalid video URL")
         
-        # Return video file
-        filename = f"{job_id}.mp4"
-        return FileResponse(
-            video_response.raw,
-            media_type="video/mp4",
-            filename=filename
-        )
+        # Extract just the filename for additional validation
+        filename_match = re.match(r'^/api/videos/([a-f0-9\-]+\.mp4)$', video_path)
+        if not filename_match:
+            raise HTTPException(status_code=400, detail="Invalid video path format")
+        
+        # Return the validated URL for client to download
+        # Client should download from: N8N_API_BASE_URL + video_path
+        return JSONResponse({
+            "success": True,
+            "job_id": job_id,
+            "download_url": f"{N8N_API_BASE_URL}{video_path}",
+            "message": "Video is ready for download",
+            "instructions": "Download the video from the download_url provided"
+        })
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to download video: {e}")
-        raise HTTPException(status_code=500, detail=f"Download failed: {str(e)}")
+        logger.error(f"Failed to get download URL: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get download URL: {str(e)}")
 
 
 @app.post("/webhook/test", tags=["N8N Webhooks"])
