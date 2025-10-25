@@ -89,17 +89,26 @@ def initialize_model():
     try:
         logger.info("Initializing HunyuanVideo model with CPU optimizations...")
         
-        # Parse args with CPU optimizations
-        args_list = [
+        # Set environment variables and parse args
+        # parse_args will read from sys.argv by default
+        import sys
+        original_argv = sys.argv.copy()
+        
+        # Build command-line arguments for CPU optimization
+        sys.argv = [
+            "api_server.py",
             "--model-base", MODEL_BASE,
             "--save-path", SAVE_PATH,
             "--precision", "fp32",  # CPU works better with fp32
             "--use-cpu-offload",
-            "--vae-tiling",
             "--flow-reverse"
         ]
         
-        args = parse_args(namespace=args_list)
+        args = parse_args()
+        
+        # Restore original argv
+        sys.argv = original_argv
+        
         models_root_path = Path(MODEL_BASE)
         
         if not models_root_path.exists():
