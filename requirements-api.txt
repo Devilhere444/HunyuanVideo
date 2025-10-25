@@ -11,7 +11,6 @@ loguru==0.7.2
 imageio==2.34.0
 imageio-ffmpeg==0.5.1
 safetensors==0.4.3
-gradio==5.0.0
 requests
 
 # API dependencies
@@ -20,7 +19,5 @@ uvicorn[standard]==0.27.0
 python-multipart==0.0.6
 pydantic==2.5.3
 
-# CPU-optimized PyTorch (will be installed separately)
-# torch==2.4.0
-# torchvision==0.19.0
-# torchaudio==2.4.0
+# CPU-optimized PyTorch (install separately)
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
