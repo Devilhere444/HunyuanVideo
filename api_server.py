@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from loguru import logger
+import threading
 
 from hyvideo.utils.file_utils import save_videos_grid
 from hyvideo.config import parse_args
@@ -47,6 +48,8 @@ app.add_middleware(
 
 # Global variables
 model_sampler = None
+model_init_lock = threading.Lock()
+model_init_error = None
 job_queue = {}
 executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
@@ -85,7 +88,7 @@ class JobResponse(BaseModel):
 
 def initialize_model():
     """Initialize the HunyuanVideo model with CPU-optimized settings"""
-    global model_sampler
+    global model_sampler, model_init_error
     
     try:
         logger.info("Initializing HunyuanVideo model with CPU optimizations...")
@@ -124,7 +127,47 @@ def initialize_model():
         
     except Exception as e:
         logger.error(f"Failed to initialize model: {e}")
+        model_init_error = str(e)
         raise
+
+
+def ensure_model_initialized():
+    """Ensure model is initialized, initializing it on-demand if needed"""
+    global model_sampler, model_init_error
+    
+    # Fast path: model already initialized
+    if model_sampler is not None:
+        return
+    
+    # Check if previous initialization failed
+    if model_init_error is not None:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Model initialization failed: {model_init_error}. Please check logs and restart the service."
+        )
+    
+    # Thread-safe initialization
+    with model_init_lock:
+        # Double-check after acquiring lock
+        if model_sampler is not None:
+            return
+        
+        if model_init_error is not None:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Model initialization failed: {model_init_error}. Please check logs and restart the service."
+            )
+        
+        # Initialize model on first request
+        logger.info("First request received, initializing model on-demand...")
+        try:
+            initialize_model()
+        except Exception as e:
+            model_init_error = str(e)
+            raise HTTPException(
+                status_code=503,
+                detail=f"Failed to initialize model on demand: {str(e)}"
+            )
 
 
 def apply_preset(request: VideoGenerationRequest) -> VideoGenerationRequest:
@@ -217,12 +260,28 @@ def generate_video_task(job_id: str, request: VideoGenerationRequest):
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize model on startup"""
+    """Validate configuration on startup but defer model loading"""
     try:
-        initialize_model()
+        logger.info("API server starting up...")
+        logger.info(f"Model base path: {MODEL_BASE}")
+        logger.info(f"Save path: {SAVE_PATH}")
+        
+        # Create necessary directories
+        os.makedirs(SAVE_PATH, exist_ok=True)
+        
+        # Check if model directory exists
+        models_root_path = Path(MODEL_BASE)
+        if not models_root_path.exists():
+            logger.warning(f"Model directory not found: {models_root_path}")
+            logger.warning("Models will need to be downloaded before video generation can work")
+        else:
+            logger.info(f"Model directory found: {models_root_path}")
+        
+        logger.info("Startup complete. Model will be initialized on first request to save memory.")
+        
     except Exception as e:
-        logger.error(f"Startup failed: {e}")
-        # Don't fail startup - allow healthcheck to indicate unhealthy state
+        logger.error(f"Startup configuration check failed: {e}")
+        # Don't fail startup - allow service to start and show proper error messages
 
 
 @app.get("/", tags=["General"])
@@ -247,12 +306,25 @@ async def root():
 @app.get("/health", tags=["General"])
 async def health_check():
     """Health check endpoint"""
-    return {
-        "status": "healthy" if model_sampler is not None else "initializing",
-        "model_loaded": model_sampler is not None,
+    is_ready = model_sampler is not None
+    has_error = model_init_error is not None
+    
+    status = "healthy" if is_ready else ("error" if has_error else "initializing")
+    
+    response = {
+        "status": status,
+        "model_loaded": is_ready,
         "active_jobs": len([j for j in job_queue.values() if j["status"] in ["queued", "processing"]]),
         "total_jobs": len(job_queue)
     }
+    
+    if has_error:
+        response["error"] = model_init_error
+        response["message"] = "Model initialization failed. Please check logs."
+    elif not is_ready:
+        response["message"] = "Model will be loaded on first request to save memory during startup."
+    
+    return response
 
 
 @app.post("/api/generate", response_model=JobResponse, tags=["Video Generation"])
@@ -265,8 +337,8 @@ async def generate_video(
     
     Returns a job ID that can be used to check status and retrieve the video
     """
-    if model_sampler is None:
-        raise HTTPException(status_code=503, detail="Model not initialized yet. Please try again in a few moments.")
+    # Ensure model is initialized before accepting requests
+    ensure_model_initialized()
     
     # Apply preset if specified
     request = apply_preset(request)
