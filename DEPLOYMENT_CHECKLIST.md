@@ -241,7 +241,8 @@ If deployment fails, check:
 
 - **Render Docs**: https://render.com/docs
 - **Render Support**: support@render.com
-- **GitHub Issues**: https://github.com/Devilhere444/HunyuanVideo/issues
+- **GitHub Issues**: https://github.com/Devilhere444/HunyuanVideo/issues (this fork)
+- **Original Repository**: https://github.com/Tencent-Hunyuan/HunyuanVideo
 - **HunyuanVideo Docs**: https://github.com/Tencent-Hunyuan/HunyuanVideo
 
 ## Success Criteria

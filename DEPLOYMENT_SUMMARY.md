@@ -221,6 +221,7 @@ result = client.predict(
 ## Support
 
 - **Documentation**: See DEPLOYMENT.md and QUICKSTART.md
+- **This Fork**: https://github.com/Devilhere444/HunyuanVideo
 - **Original Repository**: https://github.com/Tencent-Hunyuan/HunyuanVideo
 - **Render Documentation**: https://render.com/docs
 - **Model Hub**: https://huggingface.co/tencent/HunyuanVideo
