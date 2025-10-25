@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: hunyuan-video
+    env: docker
+    plan: standard
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: SERVER_NAME
+        value: 0.0.0.0
+      - key: SERVER_PORT
+        value: 10000
+      - key: MODEL_BASE
+        value: /opt/render/project/src/ckpts
+      - key: SAVE_PATH
+        value: /opt/render/project/src/results
+      - key: GRADIO_ANALYTICS_ENABLED
+        value: "False"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    disk:
+      name: model-storage
+      mountPath: /opt/render/project/src/ckpts
+      sizeGB: 100

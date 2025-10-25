@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  hunyuan-video:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8081:10000"
+    environment:
+      - SERVER_NAME=0.0.0.0
+      - SERVER_PORT=10000
+      - MODEL_BASE=/app/ckpts
+      - SAVE_PATH=/app/results
+      - GRADIO_ANALYTICS_ENABLED=False
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Mount local ckpts directory to container
+      - ./ckpts:/app/ckpts
+      # Mount results directory to persist generated videos
+      - ./results:/app/results
+      - ./gradio_outputs:/app/gradio_outputs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    runtime: nvidia
+    stdin_open: true
+    tty: true

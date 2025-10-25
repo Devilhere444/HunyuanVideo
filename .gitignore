@@ -1,2 +1,10 @@
 __pycache__
 /ckpts/**/
+results/
+gradio_outputs/
+*.mp4
+*.pt
+*.safetensors
+.env
+*.pyc
+*.log
