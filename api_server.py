@@ -53,15 +53,16 @@ executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
 class VideoGenerationRequest(BaseModel):
     prompt: str = Field(..., description="Text prompt for video generation", example="A cat walks on the grass, realistic style.")
-    width: int = Field(default=640, description="Video width in pixels", ge=256, le=1280)
-    height: int = Field(default=480, description="Video height in pixels", ge=256, le=1280)
-    video_length: int = Field(default=61, description="Number of frames (60 sec at 15fps = 900 frames, but we'll use 61 for compatibility)", ge=13, le=129)
-    fps: int = Field(default=15, description="Frames per second", ge=8, le=30)
+    width: int = Field(default=544, description="Video width in pixels (portrait: 544, landscape: 960)", ge=256, le=1280)
+    height: int = Field(default=960, description="Video height in pixels (portrait: 960, landscape: 544)", ge=256, le=1280)
+    video_length: int = Field(default=129, description="Number of frames (60 sec at 24fps = 1440, but we use 129 for CPU compatibility)", ge=13, le=129)
+    fps: int = Field(default=24, description="Frames per second (24 recommended for quality)", ge=8, le=30)
     seed: Optional[int] = Field(default=None, description="Random seed for reproducibility")
-    num_inference_steps: int = Field(default=30, description="Number of denoising steps (lower=faster)", ge=10, le=50)
+    num_inference_steps: int = Field(default=30, description="Number of denoising steps (lower=faster, 30-50 recommended)", ge=10, le=50)
     guidance_scale: float = Field(default=1.0, description="Guidance scale for generation", ge=1.0, le=20.0)
     flow_shift: float = Field(default=7.0, description="Flow shift parameter", ge=0.0, le=10.0)
     embedded_guidance_scale: float = Field(default=6.0, description="Embedded guidance scale", ge=1.0, le=20.0)
+    preset: Optional[str] = Field(default=None, description="Preset configurations: 'portrait_60s', 'landscape_60s', 'portrait_30s', 'landscape_30s'", example="portrait_60s")
 
 
 class JobStatus(BaseModel):
@@ -124,6 +125,39 @@ def initialize_model():
     except Exception as e:
         logger.error(f"Failed to initialize model: {e}")
         raise
+
+
+def apply_preset(request: VideoGenerationRequest) -> VideoGenerationRequest:
+    """Apply preset configurations for common use cases"""
+    if request.preset == "portrait_60s":
+        # 9:16 portrait, ~60 seconds
+        request.width = 544
+        request.height = 960
+        request.video_length = 129  # Max frames for CPU
+        request.fps = 24
+        request.num_inference_steps = 30
+    elif request.preset == "portrait_30s":
+        # 9:16 portrait, ~30 seconds
+        request.width = 544
+        request.height = 960
+        request.video_length = 65
+        request.fps = 24
+        request.num_inference_steps = 30
+    elif request.preset == "landscape_60s":
+        # 16:9 landscape, ~60 seconds
+        request.width = 960
+        request.height = 544
+        request.video_length = 129
+        request.fps = 24
+        request.num_inference_steps = 30
+    elif request.preset == "landscape_30s":
+        # 16:9 landscape, ~30 seconds
+        request.width = 960
+        request.height = 544
+        request.video_length = 65
+        request.fps = 24
+        request.num_inference_steps = 30
+    return request
 
 
 def generate_video_task(job_id: str, request: VideoGenerationRequest):
@@ -233,6 +267,9 @@ async def generate_video(
     """
     if model_sampler is None:
         raise HTTPException(status_code=503, detail="Model not initialized yet. Please try again in a few moments.")
+    
+    # Apply preset if specified
+    request = apply_preset(request)
     
     # Create unique job ID
     job_id = str(uuid.uuid4())
@@ -372,30 +409,37 @@ async def get_info():
     """
     return {
         "model": "HunyuanVideo",
-        "deployment": "CPU-optimized for Render.com",
+        "deployment": "CPU-optimized (8 cores, 32GB RAM)",
+        "presets": {
+            "portrait_60s": "544x960 (9:16), ~60 seconds, 24fps",
+            "portrait_30s": "544x960 (9:16), ~30 seconds, 24fps",
+            "landscape_60s": "960x544 (16:9), ~60 seconds, 24fps",
+            "landscape_30s": "960x544 (16:9), ~30 seconds, 24fps"
+        },
         "supported_resolutions": {
-            "low": "480x360 (4:3)",
-            "medium": "640x480 (4:3)",
-            "high": "960x544 (16:9)",
-            "recommended": "640x480 for CPU deployment"
+            "portrait_9_16": "544x960 (Recommended for TikTok, Instagram Reels)",
+            "landscape_16_9": "960x544 (Recommended for YouTube, TV)",
+            "custom": "256-1280 width/height, must be divisible by 8"
         },
         "video_length": {
             "min_frames": 13,
             "max_frames": 129,
-            "recommended_60sec_15fps": 61,
-            "note": "Lower frame counts generate faster on CPU"
+            "recommended_60sec": "129 frames at 24fps",
+            "note": "Frame count must be 4n+1 for VAE compatibility"
         },
         "fps_options": [8, 15, 24, 30],
         "inference_steps": {
             "min": 10,
             "max": 50,
             "recommended_cpu": 30,
+            "quality": "30-40 steps for good quality, 40-50 for best quality",
             "note": "Lower steps = faster generation but lower quality"
         },
         "estimated_generation_time": {
-            "30_steps_cpu": "10-15 minutes",
-            "50_steps_cpu": "15-25 minutes",
-            "note": "Times vary based on resolution and server load"
+            "30_steps_portrait_60s": "15-25 minutes on 8-core CPU",
+            "30_steps_landscape_60s": "15-25 minutes on 8-core CPU",
+            "40_steps_portrait_60s": "20-35 minutes on 8-core CPU",
+            "note": "Times vary based on resolution and CPU performance"
         }
     }
 
