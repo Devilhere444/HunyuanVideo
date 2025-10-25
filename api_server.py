@@ -295,11 +295,13 @@ async def root():
         "endpoints": {
             "health": "/health",
             "docs": "/docs",
+            "warmup": "/api/warmup",
             "generate": "/api/generate",
             "status": "/api/status/{job_id}",
             "video": "/api/videos/{filename}",
             "jobs": "/api/jobs"
-        }
+        },
+        "note": "Models are loaded on-demand to save memory. Use /api/warmup to pre-load models."
     }
 
 
@@ -472,6 +474,43 @@ async def delete_job(job_id: str):
     logger.info(f"Deleted job: {job_id}")
     
     return {"message": "Job deleted successfully", "job_id": job_id}
+
+
+@app.post("/api/warmup", tags=["General"])
+async def warmup_model():
+    """
+    Pre-load the model to warm up the service
+    
+    This endpoint can be called to load the model into memory before making
+    actual video generation requests. Useful for reducing latency on the first request.
+    
+    Returns the current model status after attempting to load.
+    """
+    try:
+        ensure_model_initialized()
+        return {
+            "status": "success",
+            "message": "Model is loaded and ready",
+            "model_loaded": True
+        }
+    except HTTPException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "status": "error",
+                "message": e.detail,
+                "model_loaded": False
+            }
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": str(e),
+                "model_loaded": False
+            }
+        )
 
 
 @app.get("/api/info", tags=["General"])
