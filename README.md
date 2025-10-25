@@ -97,27 +97,57 @@ If you develop/use HunyuanVideo in your projects, welcome to let us know.
 
 ## 🚀 Deployment on Render.com
 
-This repository is ready to deploy on Render.com! We provide complete deployment configuration for cloud hosting.
+This repository is ready to deploy on Render.com with **two deployment options**:
 
-**Quick Start:**
-- 📖 See [QUICKSTART.md](QUICKSTART.md) for 5-minute deployment guide
-- 📚 See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions
-- 🐳 Includes `Dockerfile` and `render.yaml` for easy deployment
-- ⚙️ Pre-configured environment variables and persistent storage
+### Option 1: CPU-Only REST API (NEW! ⭐)
+
+**Perfect for cost-effective deployment without GPU requirements**
+
+- 📖 See [API_README.md](API_README.md) for quick start
+- 📚 See [CPU_DEPLOYMENT_GUIDE.md](CPU_DEPLOYMENT_GUIDE.md) for detailed instructions
+- 📖 See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete API reference
 
 **What's Included:**
-- ✅ Docker configuration optimized for GPU deployment
-- ✅ Render.yaml blueprint for one-click deployment
-- ✅ Environment variable templates
+- ✅ FastAPI REST API server with async job processing
+- ✅ CPU-optimized Docker configuration (`Dockerfile.cpu`)
+- ✅ Render.com blueprint for Ultra plan (`render-cpu.yaml`)
+- ✅ Full API documentation with Swagger UI
+- ✅ Background job queue for video generation
+- ✅ Video storage and retrieval endpoints
+
+**Requirements:**
+- Render.com Ultra plan: 8 cores, 32GB RAM (~$450/month)
+- 100GB persistent storage for model checkpoints
+- No GPU required - runs on CPU only
+- Supports 60-second videos at 15 fps
+
+**Performance:**
+- Generation time: 10-30 minutes per video (CPU)
+- Cost per video: ~$0.53 (vs $1.50-$3.00 on GPU)
+- Ideal for: Background processing, batch jobs, low-traffic apps
+
+### Option 2: GPU Deployment (Original)
+
+**For high-performance real-time generation**
+
+- 📖 See [QUICKSTART.md](QUICKSTART.md) for 5-minute deployment guide
+- 📚 See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions
+
+**What's Included:**
+- ✅ Gradio web interface
+- ✅ GPU-optimized Docker configuration (`Dockerfile`)
+- ✅ Render.yaml blueprint for GPU instances (`render.yaml`)
 - ✅ Health check endpoints
-- ✅ Persistent disk configuration for model storage
+- ✅ Persistent disk configuration
 
 **Requirements:**
 - GPU instance with 45-60GB VRAM (for 540p/720p video generation)
 - 100GB persistent storage for model checkpoints
-- Render.com account with GPU access
+- Render.com account with GPU access (~$1000-2000/month)
 
-See the deployment guides for complete setup instructions!
+**Performance:**
+- Generation time: 1-5 minutes per video
+- Ideal for: Real-time generation, high-traffic applications
 
 
 ## Contents
