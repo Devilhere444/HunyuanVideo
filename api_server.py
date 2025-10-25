@@ -503,11 +503,12 @@ async def warmup_model():
             }
         )
     except Exception as e:
+        logger.error(f"Unexpected error during warmup: {e}")
         return JSONResponse(
             status_code=500,
             content={
                 "status": "error",
-                "message": str(e),
+                "message": "An unexpected error occurred while loading the model. Please check server logs.",
                 "model_loaded": False
             }
         )
