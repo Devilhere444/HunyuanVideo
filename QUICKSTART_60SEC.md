@@ -13,7 +13,7 @@ This guide addresses the specific requirement: Deploy HunyuanVideo on Render.com
 
 ## ⚠️ Important Limitation
 
-The HunyuanVideo model supports **maximum 129 frames** per generation. At 15 fps, this equals **8.6 seconds**.
+The HunyuanVideo model supports **maximum 129 frames** per generation. At 15 fps, this equals **approximately 8.6 seconds**.
 
 For 60-second videos, you have **three options**:
 
@@ -165,8 +165,15 @@ curl -O "https://your-service-name.onrender.com/api/videos/abc-123-def-456.mp4"
 ```
 
 **Stretch to 60 seconds using ffmpeg:**
+
+Note: This stretches a ~4 second clip to 60 seconds (15x slower). For better quality, consider generating multiple segments instead.
+
 ```bash
-ffmpeg -i abc-123-def-456.mp4 -filter:v "setpts=15*PTS" -r 15 output_60sec.mp4
+# Slow down video 15x (4 seconds → 60 seconds)
+ffmpeg -i abc-123-def-456.mp4 -filter:v "setpts=15*PTS" -an output_60sec.mp4
+
+# Or use frame interpolation for smoother result:
+ffmpeg -i abc-123-def-456.mp4 -filter:v "minterpolate=fps=15:mi_mode=mci,setpts=15*PTS" output_60sec.mp4
 ```
 
 ### Method 2: Multiple Segments (Best Quality)
