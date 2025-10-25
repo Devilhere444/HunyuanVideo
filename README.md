@@ -95,6 +95,30 @@ If you develop/use HunyuanVideo in your projects, welcome to let us know.
   - [X] Checkpoints 
 
 
+## 🚀 Deployment on Render.com
+
+This repository is ready to deploy on Render.com! We provide complete deployment configuration for cloud hosting.
+
+**Quick Start:**
+- 📖 See [QUICKSTART.md](QUICKSTART.md) for 5-minute deployment guide
+- 📚 See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions
+- 🐳 Includes `Dockerfile` and `render.yaml` for easy deployment
+- ⚙️ Pre-configured environment variables and persistent storage
+
+**What's Included:**
+- ✅ Docker configuration optimized for GPU deployment
+- ✅ Render.yaml blueprint for one-click deployment
+- ✅ Environment variable templates
+- ✅ Health check endpoints
+- ✅ Persistent disk configuration for model storage
+
+**Requirements:**
+- GPU instance with 45-60GB VRAM (for 540p/720p video generation)
+- 100GB persistent storage for model checkpoints
+- Render.com account with GPU access
+
+See the deployment guides for complete setup instructions!
+
 
 ## Contents
 - [HunyuanVideo: A Systematic Framework For Large Video Generation Model](#hunyuanvideo-a-systematic-framework-for-large-video-generation-model)
@@ -102,6 +126,7 @@ If you develop/use HunyuanVideo in your projects, welcome to let us know.
   - [🔥🔥🔥 News!!](#-news)
   - [🧩 Community Contributions](#-community-contributions)
   - [📑 Open-source Plan](#-open-source-plan)
+  - [🚀 Deployment on Render.com](#-deployment-on-rendercom)
   - [Contents](#contents)
   - [**Abstract**](#abstract)
   - [**HunyuanVideo Overall Architecture**](#hunyuanvideo-overall-architecture)
